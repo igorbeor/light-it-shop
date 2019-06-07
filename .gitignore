@@ -89,4 +89,5 @@ dmypy.json
 
 .pyre/
 
-.idea/
+.idea
+.idea/vcs.xml
