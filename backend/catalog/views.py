@@ -1,3 +1,4 @@
+from django.db.models import Q
 from .models import Category, Item
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
@@ -18,7 +19,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
         return [permission() for permission in self.permission_classes]
 
     def list(self, request, *args, **kwargs):
-        serializer = self.serializer_class(self.queryset, many=True)
+        serializer = self.serializer_class(self.get_queryset(), many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
@@ -33,6 +34,13 @@ class CategoryViewSet(viewsets.ModelViewSet):
         serializer = self.serializer_class(category)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def get_queryset(self):
+        queryset = self.queryset
+        parent = self.request.query_params.get('parent')
+        if parent:
+            queryset = queryset.filter(Q(parent__id=parent) | Q(id=parent))
+        return queryset
+
 
 class ItemViewSet(viewsets.ModelViewSet):
     queryset = Item.objects.all()
@@ -44,7 +52,8 @@ class ItemViewSet(viewsets.ModelViewSet):
         return [permission() for permission in self.permission_classes]
 
     def list(self, request, *args, **kwargs):
-        serializer = self.serializer_class(self.queryset, many=True)
+        items = self.queryset
+        serializer = self.serializer_class(items, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
@@ -59,3 +68,12 @@ class ItemViewSet(viewsets.ModelViewSet):
         serializer = self.serializer_class(item)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def get_queryset(self):
+        queryset = self.queryset
+        category = self.request.query_params.get('category')
+        order_by = self.request.query_params.get('order_by')
+        if category:
+            queryset = queryset.filter(category__id=category)
+        if order_by == 'price':
+            queryset = queryset.order_by('price')
+        return queryset
